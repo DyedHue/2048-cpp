@@ -5,8 +5,13 @@
 #include <vector>
 #include <algorithm>
 #include <random>
-
+#include <string>
+#include <windows.h>
 using namespace std;
+
+#define loopall() \
+    for (int i = 0; i < 4; i++) \
+        for (int j = 0; j < 4; j++)
 
 vector<int> validInputsmove = { 119, 97, 115, 100, 117 };
 mt19937 rng_engine;
@@ -29,98 +34,60 @@ int a = 0, score = 0, store = 0, ht = 0;
 int arrow;
 bool moved = 0;
 
+void setCursorPosition(int x, int y)
+{
+    static const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    COORD coord = { (SHORT)x, (SHORT)y };
+    SetConsoleCursorPosition(hOut, coord);
+}
+
 // print the board
 void board()
 {
-    printf("_________________________\n");
-    printf("|     |     |     |     |\n");
+    string frame = "";
+    frame.reserve(500);
+    frame += "_________________________\n";
+    frame += "|     |     |     |     |\n";
     for (int i = 0; i < 4; i++)
     {
         for (int j = 0; j < 4; j++)
         {
-            if (j == 0)
-            {
-                printf("|");
-            }
-            if (n[i][j] == 0)
-            {
-                printf("     |");
-            }
-            else if (n[i][j] < 10)
-            {
-                printf("  %d  |", n[i][j]);
-            }
-            else if (n[i][j] < 100)
-            {
-                printf("  %d |", n[i][j]);
-            }
-            else if (n[i][j] < 1000)
-            {
-                printf(" %d |", n[i][j]);
-            }
-            else if (n[i][j] < 10000)
-            {
-                printf(" %d|", n[i][j]);
-            }
-            else if (n[i][j] < 100000)
-            {
-                printf("%d|", n[i][j]);
-            }
-        }
-        if (i == 0)
-        {
-            printf("  u  -  undo");
-        }
-        else if (i == 1)
-        {
-            printf("       w");
-        }
-        else if (i == 2)
-        {
-            printf("  a   [+]   d");
-        }
-        else if (i == 3)
-        {
-            printf("       s");
-        }
-        printf("\n|_____|_____|_____|_____|");
-        if (i != 3)
-        {
-            printf("\n|     |     |     |     |\n");
-        }
-    }
-    printf("\n\n");
-    printf("Score = %d  |  Highest tile = %d\n", score, ht);
-}
+            if (j == 0) frame += "|";
 
+            if (n[i][j] == 0)frame += "     |";
+            else if (n[i][j] < 10)    frame += "  " + to_string(n[i][j]) + "  |";
+            else if (n[i][j] < 100)   frame += "  " + to_string(n[i][j]) + " |";
+            else if (n[i][j] < 1000)  frame += " " + to_string(n[i][j]) + " |";
+            else if (n[i][j] < 10000) frame += " " + to_string(n[i][j]) + "|";
+            else if (n[i][j] < 100000)frame += to_string(n[i][j]) + "|";
+        }
+        frame += "\n|_____|_____|_____|_____|";
+
+        if (i == 0) frame += "  u  -  undo";
+        else if (i == 1) frame += "       w";
+        else if (i == 2) frame += "  a   [+]   d";
+        else if (i == 3) frame += "       s";
+        
+        if (i != 3) frame += "\n|     |     |     |     |\n";
+    }
+    frame += "\n\n";
+    frame += "Score = " + to_string(score) + " | Highest tile = " + to_string(ht) + "\n";
+    cout << frame;
+}
 
 //check the equality between array n and m
 //check if there is any space left on the board
 int comp(string s = "equal")
 {
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            if ((s == "equal" && m[i][j] != n[i][j]) || (s == "space" && n[i][j] == 0))
-            {
-                return 1;
-                break;
-            }
-        }
-    }
+    loopall()
+        if ((s == "equal" && m[i][j] != n[i][j]) || (s == "space" && n[i][j] == 0)) return 1;
+
     return 0;
 }
 // pass the values of array n to m
 void pass()
 {
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            m[i][j] = n[i][j];
-        }
-    }
+    loopall() m[i][j] = n[i][j];
 }
 
 
@@ -131,29 +98,18 @@ int gameover()
     {
         for (int i = 0; i < 3; i++)
         {
-            if (n[i][j] == n[i + 1][j] || n[i][j] == n[i][j + 1])
-            {
-                return 1;
-            }
+            if (n[i][j] == n[i + 1][j] || n[i][j] == n[i][j + 1])  return 1;
         }
     }
 
     for (int j = 0; j < 3; j++)
     {
-        if (n[3][j] == n[3][j + 1])
-        {
-            return 1;
-            break;
-        }
+        if (n[3][j] == n[3][j + 1]) return 1;
     }
 
     for (int i = 0; i < 3; i++)
     {
-        if (n[i][3] == n[i + 1][3])
-        {
-            return 1;
-            break;
-        }
+        if (n[i][3] == n[i + 1][3]) return 1;
     }
     return 0;
 }
@@ -201,7 +157,7 @@ void merge(char c)
     {
         for (int i = 0; i < 3; i++)
         {
-            if (c=='u' && n[i][j] == n[i + 1][j])
+            if (c == 'u' && n[i][j] == n[i + 1][j])
             {
                 moved = 1;
                 n[i][j] += n[i + 1][j];
@@ -257,13 +213,7 @@ void merge(char c)
 void undo()
 {
     score -= store;
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            n[i][j] = m[i][j];
-        }
-    }
+    loopall() n[i][j] = m[i][j];
 }
 
 // spawn a random number (2/4) in the blank spaces
@@ -273,69 +223,60 @@ void spawn(int a)
     int c = 0;
     int x = 0;
 
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            if (n[i][j] == 0)
-            {
-                x++;
-            }
-        }
-    }
+    loopall()
+        if (n[i][j] == 0) x++;
 
     uniform_int_distribution<int> distribution(1, x);
     b = distribution(rng_engine);
 
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
+    loopall()
+        if (n[i][j] == 0)
         {
-            if (n[i][j] == 0)
+            c++;
+            if (b == c)
             {
-                c++;
-                if (b == c)
-                {
-                    n[i][j] = a;
-                    break;
-                }
+                n[i][j] = a;
+                break;
             }
         }
-    }
 }
 
 // main function starts here
 int main()
 {
+    ios_base::sync_with_stdio(false);
+    cin.tie(NULL);
+
     random_device rd;
     rng_engine.seed(rd());
+
     // screen messege
-    printf("     w     |\n");
-    printf("           |  Welcome to 2048!\n");
-    printf(" a  [+]  d |  < How to play\n");
-    printf("           |\n");
-    printf("     s     |\n");
-    printf("___________|_____\n");
-    printf("Use the characters mentioned above for moving the numbers up, down, right or left.\n");
-    printf("\nYou can also UNDO one move by entering 'u'\n");
-    printf("\nYou might want to decrease the font size of your compiler's shell if you cannot view the board properly\n\n");
-    printf("Input 'i' for more info about the game 2048 or-\n");
-    printf("         Press any button to Start!\n");
+    cout <<"     w     |\n";
+    cout <<"           |  Welcome to 2048!\n";
+    cout <<" a  [+]  d |  < How to play\n";
+    cout <<"           |\n";
+    cout <<"     s     |\n";
+    cout <<"___________|_____\n";
+    cout <<"Use the characters mentioned above for moving the numbers up, down, right or left.\n";
+    cout <<"\nYou can also UNDO one move by entering 'u'\n";
+    cout <<"\nYou might want to decrease the font size of your compiler's shell if you cannot view the board properly\n\n";
+    cout <<"Input 'i' for more info about the game 2048 or-\n";
+    cout <<"         Press any button to Start!\n";
 
     // take input to proceed
     arrow = _getch();
     if (arrow == 'i')
     {
         system("cls");
-        printf("How to play 2048:\n__________________________\n\n");
-        printf("A random number between 2 and 4 will keep spawning after each move.\n\nYou can move the board up, down, right or left to move all the numbers in the board to that direction");
-        printf("\n\n[PRESS A BUTTON]");
+        cout <<"How to play 2048:\n__________________________\n\n";
+        cout <<"A random number between 2 and 4 will keep spawning after each move.\n\nYou can move the board up, down, right or left to move all the numbers in the board to that direction";
+        cout <<"\n\n[PRESS A BUTTON]";
         arrow = _getch();
 
         system("cls");
-        printf("As two identical numbers meet, they will sum together, increasing the number of the tile as well as your score.\n\n");
-        printf("When there is no more space in the board and no more possible way to move, it's game over. You can still undo however\n");
-        printf("\nKeep increasing the number of the tiles this way and try to reach the tile of 2048, good luck!\n\n    Press any button to start\n");
+        cout <<"As two identical numbers meet, they will sum together, increasing the number of the tile as well as your score.\n\n";
+        cout <<"When there is no more space in the board and no more possible way to move, it's game over. You can still undo however\n";
+        cout <<"\nKeep increasing the number of the tiles this way and try to reach the tile of 2048, good luck!\n\n    Press any button to start\n";
         arrow = _getch();
     }
 
@@ -363,12 +304,12 @@ int main()
                     system("cls");
                     board();
 
-                    printf("\nGame Over!\n\nEnter 'g' to give up\nEnter any other character to undo\n");
+                    cout <<"\nGame Over!\n\nEnter 'g' to give up\nEnter any other character to undo\n";
                     arrow = _getch();
 
                     if (arrow == 103)
                     {
-                        printf("\n\n           You gave up!\n\n");
+                        cout <<"\n\n           You gave up!\n\n";
                         break;
                     }
                     else
@@ -383,7 +324,7 @@ int main()
 
         while (1)
         {
-            system("cls");
+			setCursorPosition(0, 0);
             board();
             arrow = _getch();
 
