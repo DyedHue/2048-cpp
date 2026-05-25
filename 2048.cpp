@@ -114,7 +114,7 @@ int gameover()
     return 0;
 }
 
-void move(char c)
+void _move(char c)
 {
     int t = 3;
     while (t--)
@@ -123,25 +123,25 @@ void move(char c)
         {
             for (int i = 1; i < 4; i++)
             {
-                if (c == 'u' && n[i][j] != 0 && n[i - 1][j] == 0)
+                if (c == 'w' && n[i][j] != 0 && n[i - 1][j] == 0)
                 {
                     moved = 1;
                     n[i - 1][j] = n[i][j];
                     n[i][j] = 0;
                 }
-                else if (c == 'd' && n[4 - i][j] == 0 && n[4 - i - 1][j] != 0)
+                else if (c == 's' && n[4 - i][j] == 0 && n[4 - i - 1][j] != 0)
                 {
                     moved = 1;
                     n[4 - i][j] = n[4 - i - 1][j];
                     n[4 - i - 1][j] = 0;
                 }
-                else if (c == 'l' && n[j][3 - (i - 1)] != 0 && n[j][3 - (i - 1) - 1] == 0)
+                else if (c == 'a' && n[j][3 - (i - 1)] != 0 && n[j][3 - (i - 1) - 1] == 0)
                 {
                     moved = 1;
                     n[j][3 - (i - 1) - 1] = n[j][3 - (i - 1)];
                     n[j][3 - (i - 1)] = 0;
                 }
-                else if (c == 'r' && n[j][i - 1] != 0 && n[j][i] == 0)
+                else if (c == 'd' && n[j][i - 1] != 0 && n[j][i] == 0)
                 {
                     moved = 1;
                     n[j][i] = n[j][i - 1];
@@ -157,7 +157,7 @@ void merge(char c)
     {
         for (int i = 0; i < 3; i++)
         {
-            if (c == 'u' && n[i][j] == n[i + 1][j])
+            if (c == 'w' && n[i][j] == n[i + 1][j])
             {
                 moved = 1;
                 n[i][j] += n[i + 1][j];
@@ -169,7 +169,7 @@ void merge(char c)
                 }
                 n[i + 1][j] = 0;
             }
-            else if(c == 'd' && n[4 - (i + 1)][j] == n[4 - (i + 1) - 1][j])
+            else if(c == 's' && n[4 - (i + 1)][j] == n[4 - (i + 1) - 1][j])
             {
                 moved = 1;
                 n[4 - (i + 1)][j] += n[4 - (i + 1) - 1][j];
@@ -181,7 +181,7 @@ void merge(char c)
                 }
                 n[4 - (i + 1) - 1][j] = 0;
             }
-            else if (c == 'l' && n[j][i] == n[j][i + 1])
+            else if (c == 'a' && n[j][i] == n[j][i + 1])
             {
                 moved = 1;
                 n[j][i] += n[j][i + 1];
@@ -193,7 +193,7 @@ void merge(char c)
                 }
                 n[j][i + 1] = 0;
             }
-            else if (c == 'r' && n[j][3 - i] == n[j][3 - i - 1])
+            else if (c == 'd' && n[j][3 - i] == n[j][3 - i - 1])
             {
                 moved = 1;
                 n[j][3 - i] += n[j][3 - i - 1];
@@ -217,7 +217,7 @@ void undo()
 }
 
 // spawn a random number (2/4) in the blank spaces
-void spawn(int a)
+void spawn(int num)
 {
     int b = 0;
     int c = 0;
@@ -235,7 +235,7 @@ void spawn(int a)
             c++;
             if (b == c)
             {
-                n[i][j] = a;
+                n[i][j] = num;
                 break;
             }
         }
@@ -285,7 +285,7 @@ int main()
 
     while (1)
     {
-        // gameplay loop
+        // gameplay loop start
 
         if (comp() == 1)
         {
@@ -312,10 +312,7 @@ int main()
                         cout <<"\n\n           You gave up!\n\n";
                         break;
                     }
-                    else
-                    {
-                        undo();
-                    }
+                    else undo();
                 }
             }
         }
@@ -328,51 +325,23 @@ int main()
             board();
             arrow = _getch();
 
-            if (find(validInputsmove.begin(), validInputsmove.end(), arrow) != validInputsmove.end())
-            {
-                break;
-            }
+            if (find(validInputsmove.begin(), validInputsmove.end(), arrow) != validInputsmove.end()) break;
         }
 
         if (arrow != 'u')
         {
             pass();
             store = 0;
+            _move(arrow);
+            merge(arrow);
+            _move(arrow);
+        }
+        else
+        {
+            if (turn != 1) undo();
+            else pass();
         }
 
-        // continue moving the board
-        if (arrow == 'w')
-        {
-            move('u');
-            merge('u');
-            move('u');
-        }
-        else if (arrow == 's')
-        {
-            move('d');
-            merge('d');
-            move('d');
-        }
-        else if (arrow == 'a')
-        {
-            move('l');
-            merge('l');
-            move('l');
-        }
-        else if (arrow == 'd')
-        {
-            move('r');
-			merge('r');
-            move('r');
-        }
-        else if (arrow == 'u')
-        {
-            // undo
-            if (turn != 1)
-                undo();
-            else
-                pass();
-        }
         turn = 0;
         moved = 0;
     }
