@@ -150,7 +150,6 @@ void make_move_and_spawn(char c)
             else if (c == 's') jj = i, ii = 3-j, idir = 1;
             else if (c == 'a')           jdir = -1;
             else if (c == 'd') jj = 3-j, jdir = 1;
-            else return;
 
             for(int cnt = 1; cnt <= j; cnt++, ii += idir, jj += jdir)
             {
@@ -164,8 +163,8 @@ void make_move_and_spawn(char c)
                 else if (cur == prev && cur != 0 && !locked[ii][jj] && !locked[ii + idir][jj + jdir])
                 {
                     prev += cur;
-                    score += cur;
-                    store += cur;
+                    score += prev;
+                    store += prev;
                     cur = 0;
                     locked[ii + idir][jj + jdir] = 1;
                     if (prev > ht)
