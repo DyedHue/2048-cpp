@@ -19,9 +19,8 @@ mt19937 rng_engine;
 
 array<array<int, 4>, 4> n = {}, m = {};//m is main, n is previous
 
-int score = 0, store = 0, ht = 0;
-int arrow;
-bool moved = 0;
+int score = 0, store = 0, ht = 0, turn = 1;
+char arrow;
 
 void setCursorPosition(int x, int y)
 {
@@ -104,6 +103,8 @@ void spawn()
     uniform_int_distribution<int> distribution1(1, 10);
     if (distribution1(rng_engine) == 1)
         num = 4;
+    
+    if (turn == 1) ht = num, score = num;
 
     int b = 0;
     int c = 0;
@@ -226,7 +227,6 @@ int main()
 
     system("cls");
 
-    int turn = 1;
     spawn();
     while (1)
     {
