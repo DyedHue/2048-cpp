@@ -8,6 +8,8 @@
 #include <string>
 #include <windows.h>
 #include <array>
+#include <chrono>
+#include <thread>
 using namespace std;
 
 #define loopall() \
@@ -17,10 +19,13 @@ using namespace std;
 vector<char> validInputsmove = { 'w', 'a', 's', 'd', 'u' };
 mt19937 rng_engine;
 
-array<array<int, 4>, 4> n = {}, m = {};//m is main, n is previous
+array<array<int, 4>, 4> n = {};
+vector<array<array<int, 4>, 4>> prevStates;
+vector<int>store;
 
-int score = 0, store = 0, ht = 0, turn = 1;
+int score = 0, ht = 0, turn = 1, undoUsage = 0, maxUndoUsage = 1, delayAmt = 30, movecnt = 0;
 char arrow;
+bool infiniteUndo = 0, animation = 0;
 
 void setCursorPosition(int x, int y)
 {
@@ -30,7 +35,7 @@ void setCursorPosition(int x, int y)
 }
 
 // print the board
-void board()
+void board(array<array<int, 4>, 4> &arr = n)
 {
     string frame = "";
     frame.reserve(500);
@@ -42,12 +47,12 @@ void board()
         {
             if (j == 0) frame += "|";
 
-            if (n[i][j] == 0)frame += "     |";
-            else if (n[i][j] < 10)    frame += "  " + to_string(n[i][j]) + "  |";
-            else if (n[i][j] < 100)   frame += "  " + to_string(n[i][j]) + " |";
-            else if (n[i][j] < 1000)  frame += " " + to_string(n[i][j]) + " |";
-            else if (n[i][j] < 10000) frame += " " + to_string(n[i][j]) + "|";
-            else if (n[i][j] < 100000)frame += to_string(n[i][j]) + "|";
+            if (arr[i][j] == 0)frame += "     |";
+            else if (arr[i][j] < 10)    frame += "  " + to_string(arr[i][j]) + "  |";
+            else if (arr[i][j] < 100)   frame += "  " + to_string(arr[i][j]) + " |";
+            else if (arr[i][j] < 1000)  frame += " " + to_string(arr[i][j]) + " |";
+            else if (arr[i][j] < 10000) frame += " " + to_string(arr[i][j]) + "|";
+            else if (arr[i][j] < 100000)frame += to_string(arr[i][j]) + "|";
         }
         frame += "\n|_____|_____|_____|_____|";
 
@@ -59,7 +64,7 @@ void board()
         if (i != 3) frame += "\n|     |     |     |     |\n";
     }
     frame += "\n\n";
-    frame += "Score = " + to_string(score) + " | Highest tile = " + to_string(ht) + "\n";
+    frame += "Score : " + to_string(score) + " | Highest tile : " + to_string(ht) + "                   " + "\nUndo usage: " + to_string(undoUsage) + " | Moves: " + to_string(movecnt) + "                   " + "\n";
     cout << frame;
 }
 
@@ -130,15 +135,24 @@ void spawn()
 
 void undo()
 {
-    score -= store;
-    n = m;
+    if(prevStates.empty() || undoUsage == 0) return;
+
+    score -= store.back();
+    store.pop_back();
+
+    n = prevStates.back();
+    prevStates.pop_back();
+
+    undoUsage--;
+    movecnt--;
 }
 
 void make_move_and_spawn(char c)
 {
-    store = 0;
     array<array<int, 4>, 4> newN = n;
     array<array<bool, 4>, 4> locked = {};
+
+    store.push_back(0);
 
     for (int i = 0; i < 4; i++)
     {
@@ -159,17 +173,29 @@ void make_move_and_spawn(char c)
                 {
                     prev = cur;
                     cur = 0;
+                    if (animation)
+                    {
+                        setCursorPosition(0, 0);
+                        board(newN);
+                        this_thread::sleep_for(chrono::milliseconds(delayAmt));
+                    }
                 }
                 else if (cur == prev && cur != 0 && !locked[ii][jj] && !locked[ii + idir][jj + jdir])
                 {
                     prev += cur;
                     score += prev;
-                    store += prev;
+                    store.back() += prev;
                     cur = 0;
                     locked[ii + idir][jj + jdir] = 1;
                     if (prev > ht)
                     {
                         ht = prev;
+                    }
+                    if (animation)
+                    {
+                        setCursorPosition(0, 0);
+                        board(newN);
+                        this_thread::sleep_for(chrono::milliseconds(delayAmt));
                     }
                 }
                 else break;
@@ -178,13 +204,99 @@ void make_move_and_spawn(char c)
     }
     if (newN != n)
     {
-        m = n;
+        prevStates.push_back(n);
         n = newN;
         spawn();
+        if(undoUsage < maxUndoUsage || infiniteUndo) undoUsage++;
+        movecnt++;
     }
 }
 
+void showIntroduction()
+{
+    cout <<"     w     |\n";
+    cout <<"           |  Welcome to 2048!\n";
+    cout <<" a  [+]  d |  < How to play\n";
+    cout <<"           |\n";
+    cout <<"     s     |\n";
+    cout <<"___________|_____\n";
+    cout <<"Use the characters mentioned above for moving the numbers up, down, right or left.\n";
+    cout <<"\nYou can also UNDO by pressing 'u'\n";
+    cout <<"\nYou might want to decrease the font size of your terminal if you cannot view the board properly\n\n";
+    cout <<"Enter 's' for changing settings\n";
+    cout <<"Enter 'i' for more info about the game 2048 or-\n\n";
+    cout <<"         Press any other button to Start!\n";
+}
 
+void GuideScrn()
+{
+    system("cls");
+    cout << "How to play 2048:\n__________________________\n\n";
+    cout << "A random number between 2 and 4 will keep spawning after each move.\n\nYou can move the board up, down, right or left to move all the numbers in the board to that direction";
+    cout << "\n\n[PRESS A BUTTON]";
+    arrow = _getch();
+
+    system("cls");
+    cout << "As two identical numbers meet, they will sum together, increasing the number of the tile as well as your score.\n\n";
+    cout << "When there is no more space in the board and no more possible way to move, it's game over. You can still undo however.\n";
+    cout << "\nKeep increasing the number of the tiles this way and try to reach the tile of 2048, good luck!\n\n    [PRESS A BUTTON]\n";
+    arrow = _getch();
+}
+
+void SettingsScrn()
+{
+    while(1)
+    {
+        system("cls");
+        cout << "Settings:\n_________\n\n";
+        cout << "1. Undo limit: " << (infiniteUndo ? "inf" : to_string(maxUndoUsage)) << "\n\n";
+        cout << "2. Animation: " << (animation ? "Enabled" : "Disabled") << "\n\n";
+        cout << "3. Animation slowness: " << delayAmt << "\n\n\n\n\n";
+        cout << "Enter a setting index to modify the setting. Enter anything else to continue:\n";
+        arrow = _getch();
+
+        if (arrow == '1')
+        {
+            while (1)
+            {
+                system("cls");
+                cout << "Enter undo limit (i for no limit): ";
+                string inp;
+                cin >> inp;
+                if (inp == "i")
+                {
+                    infiniteUndo = 1;
+                    break;
+                }
+                try
+                {
+                    maxUndoUsage = stoi(inp);
+                    break;
+                }
+                catch (const invalid_argument& e) {}
+            }
+        }
+        else if (arrow == '2')
+        {
+            animation = !animation;
+        }
+        else if (arrow == '3')
+        {
+            while (1)
+            {
+                system("cls");
+                cout << "Enter animation slowness : ";
+                try
+                {
+                    cin >> delayAmt;
+                    break;
+                }
+                catch (const invalid_argument& e) {}
+            }
+        }
+        else break;
+    }
+}
 // main function starts here
 int main()
 {
@@ -194,36 +306,21 @@ int main()
     random_device rd;
     rng_engine.seed(rd());
 
-    // screen messege
-    cout <<"     w     |\n";
-    cout <<"           |  Welcome to 2048!\n";
-    cout <<" a  [+]  d |  < How to play\n";
-    cout <<"           |\n";
-    cout <<"     s     |\n";
-    cout <<"___________|_____\n";
-    cout <<"Use the characters mentioned above for moving the numbers up, down, right or left.\n";
-    cout <<"\nYou can also UNDO one move by entering 'u'\n";
-    cout <<"\nYou might want to decrease the font size of your compiler's shell if you cannot view the board properly\n\n";
-    cout <<"Input 'i' for more info about the game 2048 or-\n";
-    cout <<"         Press any button to Start!\n";
-
-    // take input to proceed
-    arrow = _getch();
-    if (arrow == 'i')
+    while(1)
     {
         system("cls");
-        cout <<"How to play 2048:\n__________________________\n\n";
-        cout <<"A random number between 2 and 4 will keep spawning after each move.\n\nYou can move the board up, down, right or left to move all the numbers in the board to that direction";
-        cout <<"\n\n[PRESS A BUTTON]";
+        showIntroduction();
         arrow = _getch();
-
-        system("cls");
-        cout <<"As two identical numbers meet, they will sum together, increasing the number of the tile as well as your score.\n\n";
-        cout <<"When there is no more space in the board and no more possible way to move, it's game over. You can still undo however\n";
-        cout <<"\nKeep increasing the number of the tiles this way and try to reach the tile of 2048, good luck!\n\n    Press any button to start\n";
-        arrow = _getch();
+        if (arrow == 'i')
+        {
+            GuideScrn();
+        }
+        else if (arrow == 's')
+        {
+            SettingsScrn();
+        }
+        else break;
     }
-
     system("cls");
 
     spawn();
@@ -235,7 +332,6 @@ int main()
 			setCursorPosition(0, 0);
             board();
             arrow = _getch();
-            if (turn == 1 && arrow == 'u') continue;
             if (find(validInputsmove.begin(), validInputsmove.end(), arrow) != validInputsmove.end()) break;
         }
         if (arrow != 'u') make_move_and_spawn(arrow);
@@ -244,7 +340,6 @@ int main()
 
         if (!isSpace() && gameover())
         {
-            // check if its game over when there is no space. undo or give up
             system("cls");
             board();
             cout <<"\nGame Over!\n\nEnter 'g' to give up\nEnter any other character to undo\n";
@@ -255,7 +350,10 @@ int main()
                 cout <<"\n\n           You gave up!\n\n";
                 break;
             }
-            else undo();
+            else
+            {
+                undo();
+            }
             system("cls");
         }
     }
