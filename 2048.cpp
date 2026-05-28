@@ -13,7 +13,7 @@ using namespace std;
     for (int i = 0; i < 4; i++) \
         for (int j = 0; j < 4; j++)
 
-vector<int> validInputsmove = { 119, 97, 115, 100, 117 };
+vector<char> validInputsmove = { 'w', 'a', 's', 'd', 'u' };
 mt19937 rng_engine;
 
 // main array
@@ -114,96 +114,41 @@ int gameover()
     return 0;
 }
 
-void _move(char c)
+void make_move(char c)
 {
-    int t = 3;
-    while (t--)
+    bool locked[4][4] = {
+        {0, 0, 0, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0},
+        {0, 0, 0, 0}
+    };
+    for (int i = 0; i < 4; i++)
     {
-        for (int j = 0; j < 4; j++)
+        for (int j = 1; j < 4; j++)
         {
-            for (int i = 1; i < 4; i++)
+            int ii = i, idir = 0, jj = j, jdir = 0;
+
+            if      (c == 'w') jj = i, ii = j,   idir = -1;
+            else if (c == 's') jj = i, ii = 3-j, idir = 1;
+            else if (c == 'a')           jdir = -1;
+            else if (c == 'd') jj = 3-j, jdir = 1;
+
+            for(int cnt = 1; cnt <= j; cnt++, ii += idir, jj += jdir)
             {
-                if (c == 'w' && n[i][j] != 0 && n[i - 1][j] == 0)
+                int& cur = n[ii][jj];
+                int& prev = n[ii + idir][jj + jdir];
+                if(cur != 0 && prev == 0)
                 {
-                    moved = 1;
-                    n[i - 1][j] = n[i][j];
-                    n[i][j] = 0;
+                    prev = cur;
+                    cur = 0;
                 }
-                else if (c == 's' && n[4 - i][j] == 0 && n[4 - i - 1][j] != 0)
+                else if (cur == prev && cur != 0 && !locked[ii][jj] && !locked[ii + idir][jj + jdir])
                 {
-                    moved = 1;
-                    n[4 - i][j] = n[4 - i - 1][j];
-                    n[4 - i - 1][j] = 0;
+                    prev += cur;
+                    cur = 0;
+                    locked[ii + idir][jj + jdir] = 1;
                 }
-                else if (c == 'a' && n[j][3 - (i - 1)] != 0 && n[j][3 - (i - 1) - 1] == 0)
-                {
-                    moved = 1;
-                    n[j][3 - (i - 1) - 1] = n[j][3 - (i - 1)];
-                    n[j][3 - (i - 1)] = 0;
-                }
-                else if (c == 'd' && n[j][i - 1] != 0 && n[j][i] == 0)
-                {
-                    moved = 1;
-                    n[j][i] = n[j][i - 1];
-                    n[j][i - 1] = 0;
-                }
-            }
-        }
-    }
-}
-void merge(char c)
-{
-    for (int j = 0; j < 4; j++)
-    {
-        for (int i = 0; i < 3; i++)
-        {
-            if (c == 'w' && n[i][j] == n[i + 1][j])
-            {
-                moved = 1;
-                n[i][j] += n[i + 1][j];
-                score += n[i][j];
-                store += n[i][j];
-                if (n[i][j] > ht)
-                {
-                    ht = n[i][j];
-                }
-                n[i + 1][j] = 0;
-            }
-            else if(c == 's' && n[4 - (i + 1)][j] == n[4 - (i + 1) - 1][j])
-            {
-                moved = 1;
-                n[4 - (i + 1)][j] += n[4 - (i + 1) - 1][j];
-                score += n[4 - (i + 1)][j];
-                store += n[4 - (i + 1)][j];
-                if (n[4 - (i + 1)][j] > ht)
-                {
-                    ht = n[4 - (i + 1)][j];
-                }
-                n[4 - (i + 1) - 1][j] = 0;
-            }
-            else if (c == 'a' && n[j][i] == n[j][i + 1])
-            {
-                moved = 1;
-                n[j][i] += n[j][i + 1];
-                score += n[j][i];
-                store += n[j][i];
-                if (n[j][i] > ht)
-                {
-                    ht = n[j][i];
-                }
-                n[j][i + 1] = 0;
-            }
-            else if (c == 'd' && n[j][3 - i] == n[j][3 - i - 1])
-            {
-                moved = 1;
-                n[j][3 - i] += n[j][3 - i - 1];
-                score += n[j][3 - i];
-                store += n[j][3 - i];
-                if (n[j][3 - i] > ht)
-                {
-                    ht = n[j][3 - i];
-                }
-                n[j][3 - i - 1] = 0;
+                else break;
             }
         }
     }
@@ -332,9 +277,7 @@ int main()
         {
             pass();
             store = 0;
-            _move(arrow);
-            merge(arrow);
-            _move(arrow);
+            make_move(arrow);
         }
         else
         {
