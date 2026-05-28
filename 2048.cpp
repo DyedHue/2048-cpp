@@ -7,6 +7,7 @@
 #include <random>
 #include <string>
 #include <windows.h>
+#include <array>
 using namespace std;
 
 #define loopall() \
@@ -16,21 +17,9 @@ using namespace std;
 vector<char> validInputsmove = { 'w', 'a', 's', 'd', 'u' };
 mt19937 rng_engine;
 
-// main array
-int n[4][4] = {
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0} };
+array<array<int, 4>, 4> n = {}, m = {};//m is main, n is previous
 
-// additional array for comparision, undo
-int m[4][4] = {
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 0},
-    {0, 0, 0, 1} };
-
-int a = 0, score = 0, store = 0, ht = 0;
+int score = 0, store = 0, ht = 0;
 int arrow;
 bool moved = 0;
 
@@ -77,19 +66,13 @@ void board()
 
 //check the equality between array n and m
 //check if there is any space left on the board
-int comp(string s = "equal")
+int isSpace()
 {
     loopall()
-        if ((s == "equal" && m[i][j] != n[i][j]) || (s == "space" && n[i][j] == 0)) return 1;
+        if (n[i][j] == 0) return 1;
 
     return 0;
 }
-// pass the values of array n to m
-void pass()
-{
-    loopall() m[i][j] = n[i][j];
-}
-
 
 // check if its game over!
 int gameover()
@@ -98,72 +81,30 @@ int gameover()
     {
         for (int i = 0; i < 3; i++)
         {
-            if (n[i][j] == n[i + 1][j] || n[i][j] == n[i][j + 1])  return 1;
+            if (n[i][j] == n[i + 1][j] || n[i][j] == n[i][j + 1])  return 0;
         }
     }
 
     for (int j = 0; j < 3; j++)
     {
-        if (n[3][j] == n[3][j + 1]) return 1;
+        if (n[3][j] == n[3][j + 1]) return 0;
     }
 
     for (int i = 0; i < 3; i++)
     {
-        if (n[i][3] == n[i + 1][3]) return 1;
+        if (n[i][3] == n[i + 1][3]) return 0;
     }
-    return 0;
-}
-
-void make_move(char c)
-{
-    bool locked[4][4] = {
-        {0, 0, 0, 0},
-        {0, 0, 0, 0},
-        {0, 0, 0, 0},
-        {0, 0, 0, 0}
-    };
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 1; j < 4; j++)
-        {
-            int ii = i, idir = 0, jj = j, jdir = 0;
-
-            if      (c == 'w') jj = i, ii = j,   idir = -1;
-            else if (c == 's') jj = i, ii = 3-j, idir = 1;
-            else if (c == 'a')           jdir = -1;
-            else if (c == 'd') jj = 3-j, jdir = 1;
-
-            for(int cnt = 1; cnt <= j; cnt++, ii += idir, jj += jdir)
-            {
-                int& cur = n[ii][jj];
-                int& prev = n[ii + idir][jj + jdir];
-                if(cur != 0 && prev == 0)
-                {
-                    prev = cur;
-                    cur = 0;
-                }
-                else if (cur == prev && cur != 0 && !locked[ii][jj] && !locked[ii + idir][jj + jdir])
-                {
-                    prev += cur;
-                    cur = 0;
-                    locked[ii + idir][jj + jdir] = 1;
-                }
-                else break;
-            }
-        }
-    }
-}
-
-// undo the elements and the score
-void undo()
-{
-    score -= store;
-    loopall() n[i][j] = m[i][j];
+    return 1;
 }
 
 // spawn a random number (2/4) in the blank spaces
-void spawn(int num)
+void spawn()
 {
+    int num = 2;
+    uniform_int_distribution<int> distribution1(1, 10);
+    if (distribution1(rng_engine) == 1)
+        num = 4;
+
     int b = 0;
     int c = 0;
     int x = 0;
@@ -185,6 +126,64 @@ void spawn(int num)
             }
         }
 }
+
+void undo()
+{
+    score -= store;
+    n = m;
+}
+
+void make_move_and_spawn(char c)
+{
+    store = 0;
+    array<array<int, 4>, 4> newN = n;
+    array<array<bool, 4>, 4> locked = {};
+
+    for (int i = 0; i < 4; i++)
+    {
+        for (int j = 1; j < 4; j++)
+        {
+            int ii = i, idir = 0, jj = j, jdir = 0;
+
+            if      (c == 'w') jj = i, ii = j,   idir = -1;
+            else if (c == 's') jj = i, ii = 3-j, idir = 1;
+            else if (c == 'a')           jdir = -1;
+            else if (c == 'd') jj = 3-j, jdir = 1;
+            else return;
+
+            for(int cnt = 1; cnt <= j; cnt++, ii += idir, jj += jdir)
+            {
+                int& cur = newN[ii][jj];
+                int& prev = newN[ii + idir][jj + jdir];
+                if(cur != 0 && prev == 0)
+                {
+                    prev = cur;
+                    cur = 0;
+                }
+                else if (cur == prev && cur != 0 && !locked[ii][jj] && !locked[ii + idir][jj + jdir])
+                {
+                    prev += cur;
+                    score += cur;
+                    store += cur;
+                    cur = 0;
+                    locked[ii + idir][jj + jdir] = 1;
+                    if (prev > ht)
+                    {
+                        ht = prev;
+                    }
+                }
+                else break;
+            }
+        }
+    }
+    if (newN != n)
+    {
+        m = n;
+        n = newN;
+        spawn();
+    }
+}
+
 
 // main function starts here
 int main()
@@ -226,66 +225,39 @@ int main()
     }
 
     system("cls");
-    int turn = 1;
 
+    int turn = 1;
+    spawn();
     while (1)
     {
         // gameplay loop start
-
-        if (comp() == 1)
-        {
-            a = 2;
-            uniform_int_distribution<int> distribution(1, 10);
-            if (distribution(rng_engine) == 1)
-                a += 2;
-
-            spawn(a); // spawn the number
-            if (comp("space") == 0)
-            {
-                // check if its game over when there is no space
-                if (gameover() == 0)
-                {
-                    // undo or give up
-                    system("cls");
-                    board();
-
-                    cout <<"\nGame Over!\n\nEnter 'g' to give up\nEnter any other character to undo\n";
-                    arrow = _getch();
-
-                    if (arrow == 103)
-                    {
-                        cout <<"\n\n           You gave up!\n\n";
-                        break;
-                    }
-                    else undo();
-                }
-            }
-        }
-
-        // main gameplay
-
         while (1)
         {
 			setCursorPosition(0, 0);
             board();
             arrow = _getch();
-
+            if (turn == 1 && arrow == 'u') continue;
             if (find(validInputsmove.begin(), validInputsmove.end(), arrow) != validInputsmove.end()) break;
         }
-
-        if (arrow != 'u')
-        {
-            pass();
-            store = 0;
-            make_move(arrow);
-        }
-        else
-        {
-            if (turn != 1) undo();
-            else pass();
-        }
-
+        if (arrow != 'u') make_move_and_spawn(arrow);
+        else undo();
         turn = 0;
-        moved = 0;
+
+        if (!isSpace() && gameover())
+        {
+            // check if its game over when there is no space. undo or give up
+            system("cls");
+            board();
+            cout <<"\nGame Over!\n\nEnter 'g' to give up\nEnter any other character to undo\n";
+            
+            arrow = _getch();
+            if (arrow == 'g')
+            {
+                cout <<"\n\n           You gave up!\n\n";
+                break;
+            }
+            else undo();
+            system("cls");
+        }
     }
 }
