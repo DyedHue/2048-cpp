@@ -1,15 +1,16 @@
 #include <iostream>
-#include <stdlib.h>
-#include <time.h>
 #include <conio.h>
-#include <vector>
-#include <algorithm>
-#include <random>
-#include <string>
 #include <windows.h>
-#include <array>
+
+#include <algorithm>
+#include <stdlib.h>
+#include <random>
 #include <chrono>
 #include <thread>
+
+#include <vector>
+#include <array>
+#include <string>
 using namespace std;
 
 #define loopall() \
@@ -29,9 +30,21 @@ bool infiniteUndo = 0, animation = 0;
 
 void setCursorPosition(int x, int y)
 {
+#ifdef _WIN32
     static const HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
     COORD coord = { (SHORT)x, (SHORT)y };
     SetConsoleCursorPosition(hOut, coord);
+#else
+    system("clear");
+#endif
+}
+void clearScrn()
+{
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
 }
 
 // print the board
@@ -230,13 +243,13 @@ void showIntroduction()
 
 void GuideScrn()
 {
-    system("cls");
+    clearScrn();
     cout << "How to play 2048:\n__________________________\n\n";
     cout << "A random number between 2 and 4 will keep spawning after each move.\n\nYou can move the board up, down, right or left to move all the numbers in the board to that direction";
     cout << "\n\n[PRESS A BUTTON]";
     arrow = _getch();
 
-    system("cls");
+    clearScrn();
     cout << "As two identical numbers meet, they will sum together, increasing the number of the tile as well as your score.\n\n";
     cout << "When there is no more space in the board and no more possible way to move, it's game over. You can still undo however.\n";
     cout << "\nKeep increasing the number of the tiles this way and try to reach the tile of 2048, good luck!\n\n    [PRESS A BUTTON]\n";
@@ -247,7 +260,7 @@ void SettingsScrn()
 {
     while(1)
     {
-        system("cls");
+        clearScrn();
         cout << "Settings:\n_________\n\n";
         cout << "1. Undo limit: " << (infiniteUndo ? "inf" : to_string(maxUndoUsage)) << "\n\n";
         cout << "2. Animation: " << (animation ? "Enabled" : "Disabled") << "\n\n";
@@ -259,7 +272,7 @@ void SettingsScrn()
         {
             while (1)
             {
-                system("cls");
+                clearScrn();
                 cout << "Enter undo limit (i for no limit): ";
                 string inp;
                 cin >> inp;
@@ -284,7 +297,7 @@ void SettingsScrn()
         {
             while (1)
             {
-                system("cls");
+                clearScrn();
                 cout << "Enter animation slowness : ";
                 try
                 {
@@ -308,7 +321,7 @@ int main()
 
     while(1)
     {
-        system("cls");
+        clearScrn();
         showIntroduction();
         arrow = _getch();
         if (arrow == 'i')
@@ -321,7 +334,7 @@ int main()
         }
         else break;
     }
-    system("cls");
+    clearScrn();
 
     spawn();
     while (1)
@@ -340,7 +353,7 @@ int main()
 
         if (!isSpace() && gameover())
         {
-            system("cls");
+            clearScrn();
             board();
             cout <<"\nGame Over!\n\nEnter 'g' to give up\nEnter any other character to undo\n";
             
@@ -354,7 +367,7 @@ int main()
             {
                 undo();
             }
-            system("cls");
+            clearScrn();
         }
     }
 }
