@@ -1,6 +1,8 @@
 #include <iostream>
 #include <conio.h>
+#ifdef _WIN32
 #include <windows.h>
+#endif
 
 #include <algorithm>
 #include <stdlib.h>
@@ -35,7 +37,7 @@ void setCursorPosition(int x, int y)
     COORD coord = { (SHORT)x, (SHORT)y };
     SetConsoleCursorPosition(hOut, coord);
 #else
-    system("clear");
+    cout << "\033[H";
 #endif
 }
 void clearScrn()
